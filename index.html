@@ -46,20 +46,55 @@
 
   body{
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     padding: 24px;
     min-height: 100dvh;
   }
 
-  .card{
+  .app{
     width: 100%;
     max-width: 420px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
   }
+
+  /* --- Tab bar --- */
+  .tabbar{
+    display: flex;
+    gap: 4px;
+    background: var(--ink-2);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 26px;
+  }
+
+  .tab{
+    border: none;
+    background: transparent;
+    color: var(--cream-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 9px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .tab.active{ background: var(--ink); color: var(--cream); }
+
+  .view{
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+  .view.active{ display: flex; }
 
   .eyebrow{
     font-size: 12px;
@@ -189,6 +224,121 @@
 
   .divider{ width: 1px; height: 12px; background: var(--ring-track); }
 
+  /* --- History / calendar --- */
+  .cal-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 18px;
+  }
+
+  .cal-nav{
+    border: none;
+    background: var(--ink-2);
+    color: var(--cream);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s ease;
+  }
+  .cal-nav:active{ transform: scale(0.94); }
+  .cal-nav:disabled{ opacity: 0.3; cursor: default; }
+
+  .cal-month{
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 500;
+  }
+
+  .cal-weekdays{
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .cal-weekdays div{
+    text-align: center;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+
+  .cal-grid{
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+
+  .cal-cell{
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cream-dim);
+    background: var(--ring-track);
+    border: none;
+    cursor: default;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .cal-cell.empty-slot{ background: transparent; }
+  .cal-cell.has-entry{ color: var(--ink); font-weight: 600; }
+  .cal-cell.green{ background: var(--sage-bright); }
+  .cal-cell.red{ background: var(--terracotta-bright); }
+  .cal-cell.today-marker{ outline: 2px solid var(--cream); outline-offset: 2px; }
+  .cal-cell.future{ opacity: 0.35; }
+  .cal-cell.clickable{ cursor: pointer; }
+  .cal-cell.selected{ outline: 2px solid var(--cream); outline-offset: 2px; }
+
+  .cal-summary{
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--cream-dim);
+    text-align: center;
+  }
+  .cal-summary span.count{ color: var(--cream); font-weight: 600; }
+
+  .editor{
+    margin-top: 18px;
+    width: 100%;
+    background: var(--ink-2);
+    border-radius: 16px;
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .editor.active{ display: flex; }
+  .editor-label{ font-size: 13px; color: var(--cream); font-weight: 600; }
+  .editor-buttons{ display: flex; gap: 8px; width: 100%; }
+  .editor-buttons button{
+    flex: 1;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .editor-buttons .e-green{ background: var(--sage-bright); }
+  .editor-buttons .e-red{ background: var(--terracotta-bright); }
+  .editor-buttons .e-clear{ background: var(--ring-track); color: var(--cream); }
+
   @media (max-width: 340px){
     h1{ font-size: 28px; }
     .ring-pct{ font-size: 36px; }
@@ -197,36 +347,70 @@
 </head>
 <body>
 
-  <div class="card">
-    <div class="eyebrow" id="dateLabel">—</div>
-    <h1>Today</h1>
-    <div class="subtitle">How did today go, together?</div>
+  <div class="app">
+    <div class="tabbar">
+      <button class="tab active" id="tabToday">Today</button>
+      <button class="tab" id="tabHistory">History</button>
+    </div>
 
-    <div class="ring-wrap">
-      <svg viewBox="0 0 100 100">
-        <circle class="ring-track" cx="50" cy="50" r="42"></circle>
-        <circle class="ring-seg" id="segGreen" cx="50" cy="50" r="42" stroke="var(--sage-bright)"></circle>
-        <circle class="ring-seg" id="segRed" cx="50" cy="50" r="42" stroke="var(--terracotta-bright)"></circle>
-      </svg>
-      <div class="ring-center">
-        <div class="ring-pct empty" id="pctText">—</div>
-        <div class="ring-label">good days</div>
+    <!-- TODAY VIEW -->
+    <div class="view active" id="view-today">
+      <div class="eyebrow" id="dateLabel">—</div>
+      <h1>Today</h1>
+      <div class="subtitle">How did today go, together?</div>
+
+      <div class="ring-wrap">
+        <svg viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="42"></circle>
+          <circle class="ring-seg" id="segGreen" cx="50" cy="50" r="42" stroke="var(--sage-bright)"></circle>
+          <circle class="ring-seg" id="segRed" cx="50" cy="50" r="42" stroke="var(--terracotta-bright)"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-pct empty" id="pctText">—</div>
+          <div class="ring-label">good days</div>
+        </div>
+      </div>
+
+      <div class="status" id="statusText"></div>
+
+      <div class="buttons">
+        <button class="btn btn-green" id="btnGreen">Good day</button>
+        <button class="btn btn-red" id="btnRed">Rough day</button>
+      </div>
+
+      <div class="totals" id="totalsRow">
+        <span class="dot g"></span><span><span class="count" id="countGreen">0</span> good</span>
+        <span class="divider"></span>
+        <span class="dot r"></span><span><span class="count" id="countRed">0</span> rough</span>
+        <span class="divider"></span>
+        <span><span class="count" id="countTotal">0</span> days</span>
       </div>
     </div>
 
-    <div class="status" id="statusText"></div>
+    <!-- HISTORY VIEW -->
+    <div class="view" id="view-history">
+      <div class="cal-header">
+        <button class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
+        <div class="cal-month" id="calMonthLabel">—</div>
+        <button class="cal-nav" id="calNext" aria-label="Next month">›</button>
+      </div>
 
-    <div class="buttons">
-      <button class="btn btn-green" id="btnGreen">Good day</button>
-      <button class="btn btn-red" id="btnRed">Rough day</button>
-    </div>
+      <div class="cal-weekdays">
+        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+      </div>
 
-    <div class="totals" id="totalsRow">
-      <span class="dot g"></span><span><span class="count" id="countGreen">0</span> good</span>
-      <span class="divider"></span>
-      <span class="dot r"></span><span><span class="count" id="countRed">0</span> rough</span>
-      <span class="divider"></span>
-      <span><span class="count" id="countTotal">0</span> days</span>
+      <div class="cal-grid" id="calGrid"></div>
+
+      <div class="cal-summary" id="calSummary"></div>
+
+      <div class="editor" id="editor">
+        <div class="editor-label" id="editorLabel">—</div>
+        <div class="editor-buttons">
+          <button class="e-green" id="editGreen">Good day</button>
+          <button class="e-red" id="editRed">Rough day</button>
+          <button class="e-clear" id="editClear">Clear</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -235,13 +419,13 @@
   const STORAGE_KEY = 'today-app-entries-v1';
   const CIRC = 2 * Math.PI * 42; // r=42
 
-  function todayKey(){
-    const d = new Date();
+  function toKey(d){
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,'0');
     const day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
+  function todayKey(){ return toKey(new Date()); }
 
   function loadEntries(){
     try{
@@ -255,6 +439,24 @@
     catch(e){ console.error('Could not save', e); }
   }
 
+  /* ---------- Tabs ---------- */
+  const tabToday = document.getElementById('tabToday');
+  const tabHistory = document.getElementById('tabHistory');
+  const viewToday = document.getElementById('view-today');
+  const viewHistory = document.getElementById('view-history');
+
+  function showTab(name){
+    const isToday = name === 'today';
+    tabToday.classList.toggle('active', isToday);
+    tabHistory.classList.toggle('active', !isToday);
+    viewToday.classList.toggle('active', isToday);
+    viewHistory.classList.toggle('active', !isToday);
+    if(!isToday) renderCalendar();
+  }
+  tabToday.addEventListener('click', () => showTab('today'));
+  tabHistory.addEventListener('click', () => showTab('history'));
+
+  /* ---------- Today view ---------- */
   const dateLabel = document.getElementById('dateLabel');
   const pctText = document.getElementById('pctText');
   const statusText = document.getElementById('statusText');
@@ -268,7 +470,7 @@
 
   [segGreen, segRed].forEach(seg => seg.setAttribute('stroke-dasharray', `0 ${CIRC}`));
 
-  function render(){
+  function renderToday(){
     const entries = loadEntries();
     const values = Object.values(entries);
     const green = values.filter(v => v === 'green').length;
@@ -321,16 +523,137 @@
     const entries = loadEntries();
     entries[todayKey()] = value;
     saveEntries(entries);
-    render();
+    renderToday();
   }
 
   btnGreen.addEventListener('click', () => log('green'));
   btnRed.addEventListener('click', () => log('red'));
 
-  render();
+  /* ---------- History / calendar view ---------- */
+  const calPrev = document.getElementById('calPrev');
+  const calNext = document.getElementById('calNext');
+  const calMonthLabel = document.getElementById('calMonthLabel');
+  const calGrid = document.getElementById('calGrid');
+  const calSummary = document.getElementById('calSummary');
+  const editor = document.getElementById('editor');
+  const editorLabel = document.getElementById('editorLabel');
+  const editGreen = document.getElementById('editGreen');
+  const editRed = document.getElementById('editRed');
+  const editClear = document.getElementById('editClear');
 
-  // Keep the date/ring correct if the app is left open past midnight
-  setInterval(render, 60 * 1000);
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth(); // 0-indexed
+  let selectedKey = null;
+
+  function closeEditor(){
+    selectedKey = null;
+    editor.classList.remove('active');
+  }
+
+  function renderCalendar(){
+    const entries = loadEntries();
+    const firstOfMonth = new Date(viewYear, viewMonth, 1);
+    const startWeekday = firstOfMonth.getDay(); // 0=Sun
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const todayStr = todayKey();
+    const isCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
+
+    calMonthLabel.textContent = firstOfMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    calNext.disabled = isCurrentMonth;
+
+    calGrid.innerHTML = '';
+
+    for(let i = 0; i < startWeekday; i++){
+      const filler = document.createElement('div');
+      filler.className = 'cal-cell empty-slot';
+      calGrid.appendChild(filler);
+    }
+
+    let green = 0, red = 0;
+
+    for(let day = 1; day <= daysInMonth; day++){
+      const d = new Date(viewYear, viewMonth, day);
+      const key = toKey(d);
+      const val = entries[key];
+      const isFuture = d > now && key !== todayStr;
+
+      const cell = document.createElement('button');
+      cell.className = 'cal-cell';
+      cell.textContent = day;
+      cell.dataset.key = key;
+
+      if(val === 'green'){ cell.classList.add('has-entry','green'); green++; }
+      else if(val === 'red'){ cell.classList.add('has-entry','red'); red++; }
+
+      if(key === todayStr) cell.classList.add('today-marker');
+      if(isFuture){ cell.classList.add('future'); cell.disabled = true; }
+      else { cell.classList.add('clickable'); }
+
+      if(key === selectedKey) cell.classList.add('selected');
+
+      if(!isFuture){
+        cell.addEventListener('click', () => {
+          selectedKey = (selectedKey === key) ? null : key;
+          renderCalendar();
+          if(selectedKey){
+            const label = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+            editorLabel.textContent = label;
+            editor.classList.add('active');
+          } else {
+            editor.classList.remove('active');
+          }
+        });
+      }
+
+      calGrid.appendChild(cell);
+    }
+
+    const total = green + red;
+    calSummary.textContent = total > 0
+      ? `${green} good · ${red} rough this month`
+      : 'No entries logged this month yet.';
+  }
+
+  calPrev.addEventListener('click', () => {
+    viewMonth--;
+    if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+    closeEditor();
+    renderCalendar();
+  });
+
+  calNext.addEventListener('click', () => {
+    if(calNext.disabled) return;
+    viewMonth++;
+    if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+    closeEditor();
+    renderCalendar();
+  });
+
+  function setSelectedEntry(value){
+    if(!selectedKey) return;
+    const entries = loadEntries();
+    if(value === null) delete entries[selectedKey];
+    else entries[selectedKey] = value;
+    saveEntries(entries);
+    closeEditor();
+    renderCalendar();
+    renderToday();
+  }
+
+  editGreen.addEventListener('click', () => setSelectedEntry('green'));
+  editRed.addEventListener('click', () => setSelectedEntry('red'));
+  editClear.addEventListener('click', () => setSelectedEntry(null));
+
+  /* ---------- Init ---------- */
+  renderToday();
+  renderCalendar();
+
+  // Keep things correct if the app is left open past midnight
+  setInterval(() => {
+    renderToday();
+    if(viewHistory.classList.contains('active')) renderCalendar();
+  }, 60 * 1000);
 })();
 </script>
 </body>
