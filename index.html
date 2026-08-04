@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Today</title>
+<meta name="description" content="A one-tap nightly check-in." />
+
+<!-- Home screen / PWA setup -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="icon" href="favicon-16.png" sizes="16x16" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Today" />
+<meta name="theme-color" content="#191C22" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink: #191C22;
+    --ink-2: #21252d;
+    --cream: #E8DFCE;
+    --cream-dim: #A9A399;
+    --sage: #6B8F71;
+    --sage-bright: #7FA687;
+    --terracotta: #B5533C;
+    --terracotta-bright: #C7654D;
+    --ring-track: #2B2F38;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    height: 100%;
+    margin: 0;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Inter', system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+
+  body{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    min-height: 100dvh;
+  }
+
+  .card{
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    font-weight: 500;
+  }
+
+  h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 34px;
+    margin: 2px 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle{
+    font-size: 14px;
+    color: var(--cream-dim);
+    margin-bottom: 22px;
+    text-align: center;
+  }
+
+  /* --- Ring chart --- */
+  .ring-wrap{
+    position: relative;
+    width: min(58vw, 260px);
+    height: min(58vw, 260px);
+    margin-bottom: 8px;
+  }
+
+  .ring-wrap svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
+
+  .ring-track{ fill: none; stroke: var(--ring-track); stroke-width: 14; }
+  .ring-seg{
+    fill: none;
+    stroke-width: 14;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .ring-center{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-pct{
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--sage-bright);
+  }
+  .ring-pct.low{ color: var(--terracotta-bright); }
+  .ring-pct.empty{ color: var(--cream-dim); }
+
+  .ring-label{
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    margin-top: 4px;
+  }
+
+  /* --- Buttons --- */
+  .buttons{
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  .btn{
+    flex: 1;
+    border: none;
+    border-radius: 18px;
+    padding: 20px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .btn:active{ transform: scale(0.96); }
+
+  .btn-green{ background: var(--sage-bright); }
+  .btn-red{ background: var(--terracotta-bright); }
+
+  .btn.dim{ opacity: 0.45; filter: saturate(0.7); }
+  .btn.selected{ outline: 2px solid var(--cream); outline-offset: 2px; }
+
+  .status{
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--cream-dim);
+    text-align: center;
+    min-height: 16px;
+  }
+
+  .status b{ color: var(--cream); font-weight: 600; }
+
+  .totals{
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--cream-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dot{ width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.g{ background: var(--sage-bright); }
+  .dot.r{ background: var(--terracotta-bright); }
+
+  .totals span.count{ color: var(--cream); font-weight: 600; }
+
+  .divider{ width: 1px; height: 12px; background: var(--ring-track); }
+
+  @media (max-width: 340px){
+    h1{ font-size: 28px; }
+    .ring-pct{ font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="eyebrow" id="dateLabel">—</div>
+    <h1>Today</h1>
+    <div class="subtitle">How did today go, together?</div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-track" cx="50" cy="50" r="42"></circle>
+        <circle class="ring-seg" id="segGreen" cx="50" cy="50" r="42" stroke="var(--sage-bright)"></circle>
+        <circle class="ring-seg" id="segRed" cx="50" cy="50" r="42" stroke="var(--terracotta-bright)"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-pct empty" id="pctText">—</div>
+        <div class="ring-label">good days</div>
+      </div>
+    </div>
+
+    <div class="status" id="statusText"></div>
+
+    <div class="buttons">
+      <button class="btn btn-green" id="btnGreen">Good day</button>
+      <button class="btn btn-red" id="btnRed">Rough day</button>
+    </div>
+
+    <div class="totals" id="totalsRow">
+      <span class="dot g"></span><span><span class="count" id="countGreen">0</span> good</span>
+      <span class="divider"></span>
+      <span class="dot r"></span><span><span class="count" id="countRed">0</span> rough</span>
+      <span class="divider"></span>
+      <span><span class="count" id="countTotal">0</span> days</span>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'today-app-entries-v1';
+  const CIRC = 2 * Math.PI * 42; // r=42
+
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function loadEntries(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+
+  function saveEntries(entries){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    catch(e){ console.error('Could not save', e); }
+  }
+
+  const dateLabel = document.getElementById('dateLabel');
+  const pctText = document.getElementById('pctText');
+  const statusText = document.getElementById('statusText');
+  const btnGreen = document.getElementById('btnGreen');
+  const btnRed = document.getElementById('btnRed');
+  const segGreen = document.getElementById('segGreen');
+  const segRed = document.getElementById('segRed');
+  const countGreen = document.getElementById('countGreen');
+  const countRed = document.getElementById('countRed');
+  const countTotal = document.getElementById('countTotal');
+
+  [segGreen, segRed].forEach(seg => seg.setAttribute('stroke-dasharray', `0 ${CIRC}`));
+
+  function render(){
+    const entries = loadEntries();
+    const values = Object.values(entries);
+    const green = values.filter(v => v === 'green').length;
+    const red = values.filter(v => v === 'red').length;
+    const total = green + red;
+
+    dateLabel.textContent = new Date().toLocaleDateString(undefined, {
+      weekday: 'long', month: 'long', day: 'numeric'
+    });
+
+    countGreen.textContent = green;
+    countRed.textContent = red;
+    countTotal.textContent = total;
+
+    if(total === 0){
+      pctText.textContent = '—';
+      pctText.className = 'ring-pct empty';
+      segGreen.setAttribute('stroke-dasharray', `0 ${CIRC}`);
+      segRed.setAttribute('stroke-dasharray', `0 ${CIRC}`);
+    } else {
+      const pct = Math.round((green/total)*100);
+      pctText.textContent = pct + '%';
+      pctText.className = 'ring-pct' + (pct < 50 ? ' low' : '');
+
+      const greenLen = (green/total) * CIRC;
+      const redLen = (red/total) * CIRC;
+      segGreen.setAttribute('stroke-dasharray', `${greenLen} ${CIRC - greenLen}`);
+      segRed.setAttribute('stroke-dasharray', `${redLen} ${CIRC - redLen}`);
+      segRed.style.strokeDashoffset = -greenLen;
+    }
+
+    const key = todayKey();
+    const todays = entries[key];
+    if(todays === 'green'){
+      statusText.innerHTML = 'Logged as <b>good</b> for today. Tap the other button to change it.';
+      btnGreen.classList.add('selected'); btnGreen.classList.remove('dim');
+      btnRed.classList.add('dim'); btnRed.classList.remove('selected');
+    } else if(todays === 'red'){
+      statusText.innerHTML = 'Logged as <b>rough</b> for today. Tap the other button to change it.';
+      btnRed.classList.add('selected'); btnRed.classList.remove('dim');
+      btnGreen.classList.add('dim'); btnGreen.classList.remove('selected');
+    } else {
+      statusText.textContent = "Before bed, tap one for today.";
+      btnGreen.classList.remove('selected','dim');
+      btnRed.classList.remove('selected','dim');
+    }
+  }
+
+  function log(value){
+    const entries = loadEntries();
+    entries[todayKey()] = value;
+    saveEntries(entries);
+    render();
+  }
+
+  btnGreen.addEventListener('click', () => log('green'));
+  btnRed.addEventListener('click', () => log('red'));
+
+  render();
+
+  // Keep the date/ring correct if the app is left open past midnight
+  setInterval(render, 60 * 1000);
+})();
+</script>
+</body>
+</html>
